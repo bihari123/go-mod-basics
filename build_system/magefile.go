@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -35,6 +36,7 @@ var tools = []string{
 }
 
 var project_map = map[string]string{
+	"vectoredge.io/build_system":      "./build_system",
 	"vectoredge.io/provision_service": "./provision_service",
 	"vectoredge.io/connector_service": "./connector_service",
 	"vectoredge.io/metadata_service":  "./metadata_service",
@@ -78,7 +80,7 @@ func Bootstrap() error {
 		}
 	}
 
-	getPackage := []string{"get", "-v"}
+	getPackage := []string{"get", "-u", "-v"}
 	getPackage = append(getPackage, tools...)
 
 	cmd := exec.Command("go", getPackage...)
@@ -101,12 +103,16 @@ func Bootstrap() error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-
 	if _, err := os.Stat("../go.work"); os.IsNotExist(err) {
 
 		println("\n[WORKSPACE]: making a go.work file")
+
+		working_dir, _ := os.Getwd()
+		working_dir_split := strings.Split(working_dir, "/")
+		parent_dir := strings.Join(working_dir_split[:len(working_dir_split)-1], "/")
+
 		cmd := exec.Command("go", "work", "init")
-		cmd.Dir = "../"
+		cmd.Dir = parent_dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
@@ -117,14 +123,18 @@ func Bootstrap() error {
 		println("[WORKSPACE]: editing the go.work file")
 
 		for url, local_path := range project_map {
+			if _, err := os.Stat(fmt.Sprintf("../%v/go.mod", local_path)); os.IsNotExist(err) {
+				continue
+			}
+
 			cmd := exec.Command(
 				"go",
 				"work",
 				"edit",
 				"-replace",
-				fmt.Sprintf("%v=%v", url, local_path),
+				fmt.Sprintf("%v@v0.0.1=%v", url, local_path),
 			)
-			cmd.Dir = "../"
+			cmd.Dir = parent_dir
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
@@ -132,6 +142,19 @@ func Bootstrap() error {
 				return err
 			}
 
+			cmd = exec.Command(
+				"go",
+				"work",
+				"use",
+				fmt.Sprintf("%v", local_path),
+			)
+			cmd.Dir = parent_dir
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				return err
+			}
 		}
 
 		println("[WORKSPACE]: finished the go.work file")
@@ -140,23 +163,28 @@ func Bootstrap() error {
 }
 
 func Proto() error {
-	if _, err := os.Stat("../proto_layer"); os.IsExist(err) {
+	mg.Deps(Bootstrap)
 
-		println("\n[PROTO_LAYER]: preparing the proto buf")
-		cmd := exec.Command("mage", "proto")
-		cmd.Dir = "../proto_layer"
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
+	fmt.Println("Generating proto files...")
+	os.Chdir("../proto_layer")
+	if _, err := os.Stat("buf.yaml"); err != nil {
+		if err := sh.Run("buf", "mod", "init"); err != nil {
+			fmt.Println("error in buf mod init")
 			return err
 		}
+	}
 
-		println("[PROTO_LAYER]: proto buf created")
-	} else {
+	if err := sh.Run("buf", "mod", "update"); err != nil {
+		fmt.Println("error in buf mod update")
 		return err
 	}
 
+	if err := sh.RunV("buf", "generate"); err != nil {
+
+		os.Chdir("../")
+		return err
+	}
+	os.Chdir("../")
 	return nil
 }
 
@@ -168,9 +196,20 @@ func Clean() error {
 	if err := sh.RunV("go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("tidying go.mod: %w", err)
 	}
-
-	clean := []string{"dist/*", "pkg/*", "bin/*", "build/*", "gen/*", "shared_lib/shared_obj/*"}
+	working_dir, _ := os.Getwd()
+	working_dir_split := strings.Split(working_dir, "/")
+	parent_dir := strings.Join(working_dir_split[:len(working_dir_split)-1], "/")
+	fmt.Println("the parent dir is ", parent_dir)
+	clean := []string{
+		"dist/*",
+		"pkg/*",
+		"bin/*",
+		"build/*",
+		fmt.Sprintf("%v/proto_layer/gen/*", parent_dir),
+		"shared_lib/shared_obj/*",
+	}
 	for _, dir := range clean {
+		fmt.Printf("[CLEANING]: %v\n", dir)
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("removing dir: %q: %w", dir, err)
 		}

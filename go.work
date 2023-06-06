@@ -1,13 +1,13 @@
 go 1.20
 
-replace vectoredge.io/provision_service => ./provision_service
+replace vectoredge.io/provision_service v0.0.1 => ./provision_service
 
-replace vectoredge.io/connector_service => ./connector_service
+use (
+	./build_system
+	./proto_layer
+	./provision_service
+)
 
-replace vectoredge.io/metadata_service => ./metadata_service
+replace vectoredge.io/proto_layer v0.0.1 => ./proto_layer
 
-replace vectoredge.io/proto_layer => ./proto_layer
-
-replace vectoredge.io/utils => ./utils
-
-replace vectoredge.io/communication => ./communication
+replace vectoredge.io/build_system v0.0.1 => ./build_system

@@ -1,11 +1,6 @@
-module vectoredge.io/proto_layer
+module tools
 
 go 1.20
-
-require (
-	github.com/fatih/color v1.15.0
-	github.com/magefile/mage v1.15.0
-)
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect
@@ -54,6 +49,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
+	github.com/fatih/color v1.15.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
