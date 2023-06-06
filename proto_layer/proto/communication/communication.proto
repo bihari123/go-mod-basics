@@ -1,0 +1,30 @@
+syntax = "proto3";
+package proto;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "./;proto";
+
+service Provision {
+  rpc CallConnector(ConnectorRequest) returns (ConnectorResponse);
+}
+
+service Connector {
+  rpc CallProvision(ProvisionRequest) returns (ProvisionResponse);
+}
+
+message ProvisionRequest {
+  string message = 1;
+}
+
+message ProvisionResponse {
+  google.protobuf.Struct data = 1;
+}
+
+message ConnectorRequest {
+  string message = 1;
+}
+
+message ConnectorResponse {
+  google.protobuf.Struct data = 1;
+}

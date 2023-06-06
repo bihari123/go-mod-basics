@@ -1,0 +1,9 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "./;proto";
+
+message CustomData {
+  string name = 1;
+  int32 age = 2;
+}

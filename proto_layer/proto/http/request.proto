@@ -1,0 +1,64 @@
+syntax = "proto3";
+package proto;
+
+import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "./;proto";
+
+message GetRequest {
+  string url = 1;
+}
+
+message GetResponse {
+  bool success = 1;
+  Response response = 2;
+}
+
+message PostRequest {
+  string url = 1;
+  bytes pay_load = 2;
+}
+
+message PostResponse {
+  bool success = 1;
+  Response response = 2;
+}
+
+enum DataType {
+  DATA_TYPE_UNSPECIFIED = 0;
+  DATA_TYPE_BOOL = 1;
+  DATA_TYPE_STRING = 2;
+  DATA_TYPE_INT = 3;
+  DATA_TYPE_TIMESTAMP = 4;
+  DATA_TYPE_CUSTOM = 5;
+}
+
+message Data {
+  DataType type = 1;
+  google.protobuf.Any data = 2;
+}
+
+message Response {
+  uint32 code = 1;
+  google.protobuf.Struct body = 2;
+}
+
+message Empty {}
+
+service HttpService {
+  rpc Get(GetRequest) returns (GetResponse) {
+    option (google.api.http) = {
+      // this is url, for RESTfull/JSON api and method
+      // this line means when a HTTP post request comes with "/sample/get" call this rpc method over this service
+      get: "/sample/get/{url}"
+    };
+  }
+  rpc Put(PostRequest) returns (PostResponse) {
+    option (google.api.http) = {
+      post: "/sample/post"
+      body: "*"
+    };
+  }
+}
